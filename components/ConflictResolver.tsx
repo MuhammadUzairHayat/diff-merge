@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Conflict } from '@/algorithms/LCS';
-import { LuCheck } from 'react-icons/lu';
+import { LuCheck, LuX } from 'react-icons/lu';
 import { BiSolidError } from 'react-icons/bi';
 
 interface ConflictResolverProps {
@@ -16,7 +16,25 @@ export const ConflictResolver = ({
   onResolve, 
   className = '' 
 }: ConflictResolverProps) => {
-  const [customTexts, setCustomTexts] = useState<Record<string, string>>({});
+  // Tracks which conflict (if any) has the custom-text modal open
+  const [activeConflict, setActiveConflict] = useState<Conflict | null>(null);
+  const [customDraft, setCustomDraft] = useState('');
+
+  const openCustomModal = (conflict: Conflict) => {
+    setActiveConflict(conflict);
+    setCustomDraft(conflict.customText ?? conflict.versionA ?? '');
+  };
+
+  const closeCustomModal = () => {
+    setActiveConflict(null);
+    setCustomDraft('');
+  };
+
+  const applyCustom = () => {
+    if (!activeConflict) return;
+    onResolve(activeConflict.id, 'both', customDraft);
+    closeCustomModal();
+  };
 
   if (conflicts.length === 0) {
     return (
@@ -107,12 +125,7 @@ export const ConflictResolver = ({
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  const text = prompt('Enter custom text:');
-                  if (text !== null) {
-                    onResolve(conflict.id, 'both', text);
-                  }
-                }}
+                onClick={() => openCustomModal(conflict)}
                 className="px-3 py-1.5 text-sm border border-border hover:bg-bg-hover rounded transition-colors"
               >
                 Custom
@@ -121,6 +134,80 @@ export const ConflictResolver = ({
           )}
         </div>
       ))}
+
+      {activeConflict && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={closeCustomModal}
+        >
+          <div
+            className="w-full max-w-lg bg-bg-secondary border border-border rounded-lg shadow-xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-border flex items-center justify-between">
+              <h4 className="text-text-primary font-medium">
+                Custom resolution &mdash; Line {activeConflict.lineNumber}
+              </h4>
+              <button
+                type="button"
+                onClick={closeCustomModal}
+                className="text-text-muted hover:text-text-primary transition-colors"
+                aria-label="Close"
+              >
+                <LuX className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-text-muted text-xs uppercase tracking-wide">Version A</span>
+                  <pre className="font-mono text-xs text-text-primary mt-1 bg-bg-primary/50 p-2 rounded border-l-2 border-success whitespace-pre-wrap">
+                    {activeConflict.versionA || '(empty)'}
+                  </pre>
+                </div>
+                <div>
+                  <span className="text-text-muted text-xs uppercase tracking-wide">Version B</span>
+                  <pre className="font-mono text-xs text-text-primary mt-1 bg-bg-primary/50 p-2 rounded border-l-2 border-brand whitespace-pre-wrap">
+                    {activeConflict.versionB || '(empty)'}
+                  </pre>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-text-muted text-xs uppercase tracking-wide">
+                  Custom text
+                </label>
+                <textarea
+                  autoFocus
+                  value={customDraft}
+                  onChange={(e) => setCustomDraft(e.target.value)}
+                  rows={4}
+                  className="w-full mt-1 font-mono text-sm bg-bg-primary border border-border rounded p-2 text-text-primary focus:outline-none focus:border-brand resize-y"
+                  placeholder="Enter the resolved line(s)..."
+                />
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-border flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeCustomModal}
+                className="px-3 py-1.5 text-sm border border-border hover:bg-bg-hover rounded transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={applyCustom}
+                className="px-3 py-1.5 text-sm bg-success hover:bg-[#2EA043] text-white rounded transition-colors"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
