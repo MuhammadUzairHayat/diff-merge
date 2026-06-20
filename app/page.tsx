@@ -159,11 +159,42 @@ export default function Home() {
     }
   };
 
+  // Apply a resolved value to the diff line that maps to the conflict's base line
+  const applyResolutionToDiff = (baseLineNumber: number, value: string) => {
+    const patch = (prev: InlineDiff[]) =>
+      prev.map(line =>
+        line.baseLineNumber === baseLineNumber && line.type !== 'unchanged'
+          ? { ...line, current: value }
+          : line
+      );
+    setInlineDiffA(patch);
+    setInlineDiffB(patch);
+  };
+
   const handleResolveConflict = (
     conflictId: string,
     choice: 'A' | 'B' | 'both',
     customText?: string
   ) => {
+    const conflict = conflicts.find(c => c.id === conflictId);
+    if (!conflict) return;
+
+    let resolvedValue: string;
+    if (customText !== undefined && customText !== '') {
+      resolvedValue = customText;
+    } else if (choice === 'A') {
+      resolvedValue = conflict.versionA;
+    } else if (choice === 'B') {
+      resolvedValue = conflict.versionB;
+    } else {
+      // Keep both
+      resolvedValue = [conflict.versionA, conflict.versionB]
+        .filter(Boolean)
+        .join('\n');
+    }
+
+    applyResolutionToDiff(conflict.lineNumber, resolvedValue);
+
     setConflicts(prev =>
       prev.map(c =>
         c.id === conflictId ? { ...c, resolved: true, choice, customText } : c

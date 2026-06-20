@@ -97,6 +97,7 @@ export const InlineDiffViewer = ({
           const isChanged = line.type !== 'unchanged';
           const isAccepted = isChanged && line.current === line.modified;
           const isRejected = isChanged && line.current === line.original;
+          const isCustom = isChanged && !isAccepted && !isRejected;
 
           // Left (original) styling
           const leftClass =
@@ -108,7 +109,9 @@ export const InlineDiffViewer = ({
 
           // Right (modified / resolved) styling
           let rightClass = '';
-          if (isChanged && isAccepted) {
+          if (isCustom) {
+            rightClass = 'bg-[rgba(56,139,253,0.15)]';
+          } else if (isChanged && isAccepted) {
             rightClass =
               line.type === 'deleted'
                 ? 'bg-[rgba(218,54,51,0.12)]'
@@ -144,7 +147,11 @@ export const InlineDiffViewer = ({
                 {isChanged && (
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <span className="text-[10px] mr-1 flex items-center gap-1">
-                      {isAccepted ? (
+                      {isCustom ? (
+                        <span className="text-brand flex items-center gap-1">
+                          <LuPencil className="w-3 h-3" /> Custom
+                        </span>
+                      ) : isAccepted ? (
                         <span className="text-success flex items-center gap-1">
                           <LuCheck className="w-3 h-3" /> Changed
                         </span>
